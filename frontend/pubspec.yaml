@@ -1,0 +1,44 @@
+name: coretune
+description: Cliente de streaming musical local-first, open-source.
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Estado
+  flutter_riverpod: ^2.5.1
+
+  # Audio y sistema
+  just_audio: ^0.9.40
+  audio_service: ^0.18.13
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.3
+
+  # Red / scraping
+  youtube_explode_dart: ^2.2.0
+  dio: ^5.4.3
+
+  # Base de datos local
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+
+  # UI
+  google_fonts: ^6.2.1
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.9
+  isar_generator: ^3.1.0+1
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
