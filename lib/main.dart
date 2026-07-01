@@ -1,4 +1,4 @@
-import 'package:coretune/data/local_bd/isar_service.dart';
+import 'package:coretune/data/local_db/isar_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
