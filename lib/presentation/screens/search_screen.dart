@@ -1,23 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_typography.dart';
-import '../../data/network/mock_music_data.dart';
-import '../widgets/song_tile.dart';
+import '../../domain/models/song.dart';
+import '../../presentation/providers/player_providers.dart';
+import '../../presentation/widgets/song_tile.dart';
 
-class SearchScreen extends StatefulWidget {
+// Provider de búsqueda — AsyncNotifier para manejar loading/error/data
+class SearchController extends AsyncNotifier<List<Song>> {
+  @override
+  Future<List<Song>> build() async => [];
+
+  Future<void> search(String query) async {
+    if (query.trim().isEmpty) {
+      state = const AsyncData([]);
+      return;
+    }
+
+    state = const AsyncLoading();
+
+    final repo = ref.read(songRepositoryProvider);
+    state = await AsyncValue.guard(() => repo.search(query));
+  }
+
+  void clear() => state = const AsyncData([]);
+}
+
+final searchControllerProvider =
+    AsyncNotifierProvider<SearchController, List<Song>>(SearchController.new);
+
+// ─── PANTALLA ────────────────────────────────────────────────────────────────
+
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
+  final _focus = FocusNode();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _onSubmit(String query) {
+    ref.read(searchControllerProvider.notifier).search(query);
+    _focus.unfocus();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final results = MockMusicData.recentlyPlayed; // placeholder hasta conectar youtube_explode_dart
+    final searchState = ref.watch(searchControllerProvider);
+    final playerState = ref.watch(playerControllerProvider);
 
     return Scaffold(
       backgroundColor: CoreTuneColors.background,
@@ -28,8 +70,11 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
               Text('Buscar', style: CoreTuneTypography.screenTitle),
               const SizedBox(height: 14),
+
+              // ── Barra de búsqueda ──
               Container(
                 decoration: BoxDecoration(
                   color: CoreTuneColors.surfaceCard,
@@ -44,7 +89,10 @@ class _SearchScreenState extends State<SearchScreen> {
                     Expanded(
                       child: TextField(
                         controller: _controller,
+                        focusNode: _focus,
                         style: CoreTuneTypography.body,
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: _onSubmit,
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           isDense: true,
@@ -54,17 +102,66 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ),
                     ),
+                    // Botón limpiar
+                    if (_controller.text.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _controller.clear();
+                          ref.read(searchControllerProvider.notifier).clear();
+                        },
+                        child: const Icon(Icons.close,
+                            color: CoreTuneColors.textMuted, size: 16),
+                      ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 18),
+
+              // ── Error del reproductor ──
+              if (playerState.error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    playerState.error!,
+                    style: CoreTuneTypography.cardSubtitle
+                        .copyWith(color: CoreTuneColors.coral),
+                  ),
+                ),
+
+              // ── Resultados / Loading / Empty ──
               Expanded(
-                child: ListView.separated(
-                  itemCount: results.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 4),
-                  itemBuilder: (context, i) => SongTile(song: results[i]),
+                child: searchState.when(
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(
+                      color: CoreTuneColors.coral,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                  error: (e, _) => Center(
+                    child: Text(
+                      'Error al buscar. Revisa tu conexión.',
+                      style: CoreTuneTypography.cardSubtitle,
+                    ),
+                  ),
+                  data: (songs) {
+                    if (songs.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'Busca una canción o artista',
+                          style: CoreTuneTypography.cardSubtitle,
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      itemCount: songs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 4),
+                      itemBuilder: (context, i) => SongTile(song: songs[i]),
+                    );
+                  },
                 ),
               ),
+
             ],
           ),
         ),
