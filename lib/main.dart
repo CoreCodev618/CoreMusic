@@ -1,3 +1,4 @@
+import 'package:coretune/data/local_bd/isar_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
@@ -5,7 +6,10 @@ import 'presentation/screens/loading_screen.dart';
 import 'presentation/screens/onboarding_taste_screen.dart';
 import 'presentation/screens/main_shell.dart';
 import 'presentation/screens/player_screen.dart';
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await IsarService.init();
   runApp(const ProviderScope(child: CoreTuneApp()));
 }
 
